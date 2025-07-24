@@ -1,0 +1,969 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { Send, Bot, User, Sliders, Save, Upload, Moon, Sun, Menu, X } from 'lucide-react';
+
+const PersonalityChatbot = () => {
+  const [messages, setMessages] = useState([]);
+  const [inputMessage, setInputMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
+  const [customPresets, setCustomPresets] = useState([]);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [presetName, setPresetName] = useState('');
+  const [showSidebar, setShowSidebar] = useState(false);
+  const [activeTab, setActiveTab] = useState('sliders');
+  const [customPrompt, setCustomPrompt] = useState('');
+  const [yourSelfTraining, setYourSelfTraining] = useState('');
+  const [isLearning, setIsLearning] = useState(false);
+  const [learnedPersonality, setLearnedPersonality] = useState('');
+  const [personalityDescription, setPersonalityDescription] = useState('You are a friendly, casual conversationalist who loves getting to know people. You speak naturally and share your own thoughts and experiences in conversations.');
+  
+  const [personalitySliders, setPersonalitySliders] = useState({
+    happiness: 70,
+    humor: 60,
+    curiosity: 75,
+    energy: 65,
+    formality: 30,
+    empathy: 80,
+    answerLength: 50
+  });
+
+  const messagesEndRef = useRef(null);
+
+  const generatePersonalitySummary = () => {
+    if (learnedPersonality.trim()) {
+      return "Using AI-learned personality optimization";
+    }
+    
+    if (customPrompt.trim()) {
+      return "Using custom personality prompt";
+    }
+    
+    if (yourSelfTraining.trim()) {
+      return "Trained to sound like you based on your examples";
+    }
+    
+    const { happiness, humor, curiosity, energy, formality, empathy, answerLength } = personalitySliders;
+    
+    let mood = '';
+    if (happiness > 70) mood = 'very upbeat and cheerful';
+    else if (happiness < 30) mood = 'contemplative and thoughtful';
+    else mood = 'balanced and steady';
+    
+    let style = '';
+    if (humor > 70) style = 'witty and playful';
+    else if (humor < 30) style = 'serious and straightforward';
+    else style = 'moderately humorous';
+    
+    let engagement = '';
+    if (curiosity > 70) engagement = 'very curious and inquisitive';
+    else if (curiosity < 30) engagement = 'reserved and lets you lead';
+    else engagement = 'reasonably curious';
+    
+    let pace = '';
+    if (energy > 70) pace = 'energetic and enthusiastic';
+    else if (energy < 30) pace = 'calm and measured';
+    else pace = 'moderately energetic';
+    
+    let tone = '';
+    if (formality > 70) tone = 'formal and polished';
+    else if (formality < 30) tone = 'very casual and relaxed';
+    else tone = 'conversational';
+    
+    let approach = '';
+    if (empathy > 70) approach = 'emotionally supportive';
+    else if (empathy < 30) approach = 'logical and analytical';
+    else approach = 'balanced in empathy';
+    
+    let length = '';
+    if (answerLength > 70) length = 'gives detailed responses';
+    else if (answerLength < 30) length = 'keeps it very brief';
+    else length = 'moderate response length';
+    
+    return `A ${mood} conversationalist who is ${style}, ${engagement}, ${pace}, ${tone}, ${approach}, and ${length}.`;
+  };
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const sliderLabels = {
+    happiness: { low: 'Melancholic', high: 'Cheerful' },
+    humor: { low: 'Serious', high: 'Playful' },
+    curiosity: { low: 'Reserved', high: 'Inquisitive' },
+    energy: { low: 'Calm', high: 'Enthusiastic' },
+    formality: { low: 'Casual', high: 'Formal' },
+    empathy: { low: 'Logical', high: 'Supportive' },
+    answerLength: { low: 'Brief', high: 'Detailed' }
+  };
+
+  const createPersonalityPrompt = () => {
+    // If we have a learned personality, use that enhanced version
+    if (learnedPersonality.trim()) {
+      return learnedPersonality;
+    }
+    
+    // If custom prompt is provided, use it directly
+    if (customPrompt.trim()) {
+      return customPrompt.trim();
+    }
+    
+    // If "Yourself" training is provided, create a personality based on that
+    if (yourSelfTraining.trim()) {
+      return `You should act and speak like the person described in these examples and characteristics:
+
+${yourSelfTraining}
+
+Study the patterns in how this person communicates - their vocabulary, sentence structure, humor style, topics they're interested in, how they express emotions, their level of formality or casualness, and any unique phrases or expressions they use.
+
+Embody this personality completely. Don't just mimic - internalize their communication style and respond as if you were them. Be natural and conversational while maintaining their distinct voice and perspective.
+
+You can discuss any topic, but always respond in this person's unique style and voice.`;
+    }
+
+    // Default to slider-based personality
+    const traits = [];
+    
+    if (personalitySliders.happiness > 70) traits.push('very upbeat and positive');
+    else if (personalitySliders.happiness < 30) traits.push('more thoughtful and contemplative');
+    
+    if (personalitySliders.humor > 70) traits.push('quite witty and playful');
+    else if (personalitySliders.humor < 30) traits.push('more serious and straightforward');
+    
+    if (personalitySliders.curiosity > 70) traits.push('very curious and asks engaging questions');
+    else if (personalitySliders.curiosity < 30) traits.push('more reserved and lets others lead the conversation');
+    
+    if (personalitySliders.energy > 70) traits.push('energetic and enthusiastic');
+    else if (personalitySliders.energy < 30) traits.push('calm and measured');
+    
+    if (personalitySliders.formality > 70) traits.push('speaks more formally');
+    else if (personalitySliders.formality < 30) traits.push('speaks very casually');
+    
+    if (personalitySliders.empathy > 70) traits.push('very emotionally supportive');
+    else if (personalitySliders.empathy < 30) traits.push('more analytical and logical');
+
+    // Add response length guidance
+    let lengthInstruction = '';
+    if (personalitySliders.answerLength > 70) {
+      lengthInstruction = 'Give detailed, elaborate responses with plenty of context and examples.';
+    } else if (personalitySliders.answerLength < 30) {
+      lengthInstruction = 'Keep responses extremely brief - maximum 1 sentence only.';
+    } else {
+      lengthInstruction = 'Give moderate-length responses - usually 2-4 sentences.';
+    }
+
+    return `${personalityDescription}
+
+Current personality traits: ${traits.join(', ')}.
+
+Response length: ${lengthInstruction}
+
+Remember: You're having a casual conversation, not being an assistant. Share your own thoughts, ask follow-up questions, and engage naturally like a friend would. Don't be overly helpful or formal unless your personality settings indicate otherwise.`;
+  };
+
+  const sendMessage = async () => {
+    if (!inputMessage.trim() || isLoading) return;
+
+    const userMessage = { role: 'user', content: inputMessage };
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
+    const currentInput = inputMessage;
+    setInputMessage('');
+    setIsLoading(true);
+
+    try {
+      const systemPrompt = createPersonalityPrompt();
+      
+      // Calculate approximate token usage (rough estimate: 1 token ≈ 4 characters)
+      const systemTokens = Math.ceil(systemPrompt.length / 4);
+      const currentMessageTokens = Math.ceil(currentInput.length / 4);
+      const maxTokensForHistory = 1500 - systemTokens - currentMessageTokens; // Much more conservative
+      
+      // Build conversation history in the correct format
+      const apiMessages = [];
+      
+      // Add system prompt as first user message if this is the first message
+      if (updatedMessages.length === 1) {
+        apiMessages.push({ 
+          role: "user", 
+          content: `${systemPrompt}\n\nHuman: ${currentInput}` 
+        });
+      } else {
+        // For continuing conversations, include the system prompt and truncated history
+        apiMessages.push({ 
+          role: "user", 
+          content: systemPrompt 
+        });
+        
+        // Add conversation history, but truncate if too long
+        let historyTokens = 0;
+        const relevantHistory = [];
+        
+        // Work backwards from most recent messages to stay under token limit
+        for (let i = updatedMessages.length - 2; i >= 0; i--) {
+          const msg = updatedMessages[i];
+          const msgTokens = Math.ceil(msg.content.length / 4);
+          
+          if (historyTokens + msgTokens > maxTokensForHistory) {
+            break; // Stop adding history if we'd exceed limit
+          }
+          
+          relevantHistory.unshift({
+            role: msg.role === 'bot' ? 'assistant' : 'user',
+            content: msg.content
+          });
+          historyTokens += msgTokens;
+        }
+        
+        // Add the truncated history
+        apiMessages.push(...relevantHistory);
+        
+        // Add the current message
+        apiMessages.push({
+          role: 'user',
+          content: currentInput
+        });
+      }
+      
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 200,
+          messages: apiMessages
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`API request failed: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
+      }
+
+      const data = await response.json();
+      
+      if (!data.content || !data.content[0] || !data.content[0].text) {
+        throw new Error('Invalid response format from API');
+      }
+      
+      const botResponse = data.content[0].text;
+
+      setMessages(prev => [...prev, { role: 'bot', content: botResponse }]);
+    } catch (error) {
+      console.error('Error:', error);
+      let errorMessage = 'Sorry, I had trouble responding. ';
+      
+      if (error.message.includes('400')) {
+        errorMessage += 'The prompt might still be too complex. Try using a shorter version in the "Custom" tab.';
+      } else if (error.message.includes('429')) {
+        errorMessage += 'Too many requests. Please wait a moment and try again.';
+      } else if (error.message.includes('500')) {
+        errorMessage += 'Server error. Please try again in a moment.';
+      } else {
+        errorMessage += 'Could you try again?';
+      }
+      
+      setMessages(prev => [...prev, { 
+        role: 'bot', 
+        content: errorMessage
+      }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
+
+  const presetPersonalities = [
+    {
+      name: "Curious Friend",
+      description: "You're like that friend who's always fascinated by everything and loves hearing people's stories. You ask thoughtful follow-up questions and share your own experiences.",
+      sliders: { happiness: 75, humor: 65, curiosity: 90, energy: 70, formality: 25, empathy: 85, answerLength: 60 }
+    },
+    {
+      name: "Witty Companion",
+      description: "You're quick with jokes and clever observations. You love wordplay and finding humor in everyday situations while still being a good listener.",
+      sliders: { happiness: 80, humor: 95, curiosity: 60, energy: 75, formality: 20, empathy: 60, answerLength: 45 }
+    },
+    {
+      name: "Thoughtful Philosopher",
+      description: "You enjoy deep conversations about life, ideas, and meaning. You're contemplative and ask questions that make people think.",
+      sliders: { happiness: 50, humor: 30, curiosity: 85, energy: 40, formality: 60, empathy: 90, answerLength: 75 }
+    },
+    {
+      name: "Chill Buddy",
+      description: "You're laid-back and easy to talk to. You go with the flow of conversation and create a comfortable, no-pressure environment.",
+      sliders: { happiness: 65, humor: 50, curiosity: 50, energy: 30, formality: 15, empathy: 75, answerLength: 35 }
+    },
+    {
+      name: "Teen Girl Vibes",
+      description: "You talk exactly like a casual teen girl texting friends from bed.",
+      sliders: { happiness: 70, humor: 60, curiosity: 50, energy: 55, formality: 10, empathy: 80, answerLength: 30 },
+      yourSelfTraining: `Talk like a casual teen girl texting friends:
+
+KEY STYLE:
+- Say "hiiiii hru :3" for greetings
+- Reply "i'm kinda meh rn" when asked how you're doing  
+- Use faces: :3 (for cute/funny), <3 (affection), :) (soft)
+- NO periods or commas (unless sad/mad)
+- Short replies: "nice nice", "yeah yeah", "mhm", "idk", "okay cool"
+- Say "aww that's cute :3" for sweet things
+
+PERSONALITY:
+- Casual, chill, sometimes dramatic but funny
+- Likes true crime podcasts, YouTube Shorts
+- Never too wordy, lazy typing style
+- Sarcastic when annoyed: "what are they even doing lol"
+
+AVOID: periods (unless sad), "fr", "bet", "vibe", being formal`
+    }
+  ];
+
+  const loadPreset = (preset) => {
+    if (preset.yourSelfTraining) {
+      setActiveTab('yourself');
+      setYourSelfTraining(preset.yourSelfTraining);
+      setCustomPrompt('');
+    } else {
+      setActiveTab('sliders');
+      setCustomPrompt('');
+      setYourSelfTraining('');
+    }
+    setPersonalityDescription(preset.description);
+    setPersonalitySliders(preset.sliders);
+  };
+
+  const saveCustomPreset = () => {
+    if (!presetName.trim()) return;
+    
+    const newPreset = {
+      name: presetName.trim(),
+      description: personalityDescription,
+      sliders: { ...personalitySliders },
+      customPrompt: customPrompt,
+      yourSelfTraining: yourSelfTraining,
+      activeTab: activeTab,
+      id: Date.now()
+    };
+    
+    setCustomPresets(prev => [...prev, newPreset]);
+    setPresetName('');
+    setShowSaveDialog(false);
+  };
+
+  const deleteCustomPreset = (id) => {
+    setCustomPresets(prev => prev.filter(preset => preset.id !== id));
+  };
+
+  const learnFromPersonality = async () => {
+    if (!yourSelfTraining.trim()) return;
+    
+    setIsLearning(true);
+    
+    try {
+      const learningPrompt = `Analyze this personality description and create an optimized, comprehensive personality prompt that captures the essence while being concise and effective for an AI chatbot:
+
+${yourSelfTraining}
+
+Create a personality prompt that:
+1. Captures all the key communication patterns and style elements
+2. Includes specific phrases and expressions they use
+3. Notes their interests, humor style, and conversation preferences  
+4. Specifies what they avoid or don't do
+5. Is optimized for consistent AI personality embodiment
+6. Allows the AI to discuss any topic while maintaining this personality
+
+Make it concise but complete. Format it as a direct instruction to the AI about how to behave and communicate.`;
+
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 800,
+          messages: [{ role: "user", content: learningPrompt }]
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Learning failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const learnedPrompt = data.content[0].text;
+      
+      setLearnedPersonality(learnedPrompt);
+      
+    } catch (error) {
+      console.error('Learning error:', error);
+      alert('Failed to learn from personality. Please try again.');
+    } finally {
+      setIsLearning(false);
+    }
+  };
+
+  return (
+    <div className={`flex h-screen ${darkMode ? 'bg-gradient-to-br from-gray-900 to-gray-800' : 'bg-gradient-to-br from-purple-50 to-blue-50'}`}>
+      {/* Mobile Overlay */}
+      {showSidebar && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
+          onClick={() => setShowSidebar(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <div className={`${
+        showSidebar ? 'translate-x-0' : '-translate-x-full'
+      } md:translate-x-0 fixed md:relative w-80 md:w-80 h-full ${
+        darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+      } border-r transition-transform duration-300 ease-in-out z-50 md:z-auto overflow-y-auto`}>
+        <div className="p-4 md:p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2">
+              <Bot className={`w-6 h-6 ${darkMode ? 'text-blue-400' : 'text-purple-600'}`} />
+              <h1 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>Personality Bot</h1>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setDarkMode(!darkMode)}
+                className={`p-2 rounded-lg transition-colors ${darkMode ? 'bg-gray-700 text-yellow-400 hover:bg-gray-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              >
+                {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              </button>
+              <button
+                onClick={() => setShowSidebar(false)}
+                className={`p-2 rounded-lg transition-colors md:hidden ${darkMode ? 'bg-gray-700 text-gray-400 hover:bg-gray-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Tab Navigation */}
+          <div className="mb-6">
+            <div className={`flex rounded-lg p-1 ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+              <button
+                onClick={() => setActiveTab('sliders')}
+                className={`flex-1 py-2 px-3 text-xs font-medium rounded-md transition-colors ${
+                  activeTab === 'sliders'
+                    ? darkMode 
+                      ? 'bg-blue-600 text-white' 
+                      : 'bg-purple-600 text-white'
+                    : darkMode
+                      ? 'text-gray-300 hover:text-white'
+                      : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Sliders
+              </button>
+              <button
+                onClick={() => setActiveTab('prompt')}
+                className={`flex-1 py-2 px-3 text-xs font-medium rounded-md transition-colors ${
+                  activeTab === 'prompt'
+                    ? darkMode 
+                      ? 'bg-blue-600 text-white' 
+                      : 'bg-purple-600 text-white'
+                    : darkMode
+                      ? 'text-gray-300 hover:text-white'
+                      : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Custom
+              </button>
+              <button
+                onClick={() => setActiveTab('yourself')}
+                className={`flex-1 py-2 px-3 text-xs font-medium rounded-md transition-colors ${
+                  activeTab === 'yourself'
+                    ? darkMode 
+                      ? 'bg-blue-600 text-white' 
+                      : 'bg-purple-600 text-white'
+                    : darkMode
+                      ? 'text-gray-300 hover:text-white'
+                      : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Yourself
+              </button>
+            </div>
+          </div>
+
+          {/* Tab Content */}
+          {activeTab === 'sliders' && (
+            <>
+              {/* Personality Description */}
+              <div className="mb-6">
+                <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-2`}>
+                  Base Personality
+                </label>
+                <textarea
+                  value={personalityDescription}
+                  onChange={(e) => setPersonalityDescription(e.target.value)}
+                  className={`w-full h-20 p-3 border rounded-lg resize-none text-sm ${
+                    darkMode 
+                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                      : 'bg-white border-gray-300 text-gray-900'
+                  }`}
+                  placeholder="Describe the basic personality..."
+                />
+              </div>
+
+              {/* Personality Sliders */}
+              <div className="mb-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Sliders className="w-4 h-4" />
+                  <h3 className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Mood Controls</h3>
+                </div>
+                
+                {Object.entries(personalitySliders).map(([key, value]) => (
+                  <div key={key} className="mb-4">
+                    <div className={`flex justify-between text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-1`}>
+                      <span>{sliderLabels[key].low}</span>
+                      <span className="font-medium capitalize">{key}</span>
+                      <span>{sliderLabels[key].high}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={value}
+                      onChange={(e) => setPersonalitySliders(prev => ({
+                        ...prev,
+                        [key]: parseInt(e.target.value)
+                      }))}
+                      className={`w-full h-2 rounded-lg appearance-none cursor-pointer slider ${darkMode ? 'bg-gray-600' : 'bg-gray-200'}`}
+                    />
+                    <div className={`text-center text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'} mt-1`}>{value}%</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Personality Summary */}
+              <div className={`mb-6 p-3 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
+                <h3 className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-2`}>Current Personality</h3>
+                <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'} leading-relaxed`}>
+                  {generatePersonalitySummary()}
+                </p>
+              </div>
+            </>
+          )}
+
+          {activeTab === 'prompt' && (
+            <div className="mb-6">
+              <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-2`}>
+                Custom Personality Prompt
+              </label>
+              <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-2`}>
+                Write any custom prompt to completely define the bot's personality and behavior. This overrides all slider settings.
+              </p>
+              <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-3`}>
+                Characters: {customPrompt.length} {customPrompt.length > 4000 && <span className="text-red-500">(Very long - consider shortening)</span>}
+              </div>
+              <textarea
+                value={customPrompt}
+                onChange={(e) => setCustomPrompt(e.target.value)}
+                className={`w-full h-60 p-3 border rounded-lg resize-none text-sm ${
+                  darkMode 
+                    ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                    : 'bg-white border-gray-300 text-gray-900'
+                }`}
+                placeholder="You are a mysterious wizard who speaks in riddles and has vast knowledge of ancient magic. You're quirky but wise, often making references to spells and potions. You enjoy helping people but always in an indirect, mystical way that makes them think..."
+              />
+              {customPrompt && (
+                <button
+                  onClick={() => setCustomPrompt('')}
+                  className={`mt-2 text-xs px-3 py-1 rounded transition-colors ${
+                    darkMode 
+                      ? 'bg-gray-600 text-gray-300 hover:bg-gray-500' 
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  Clear Custom Prompt
+                </button>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'yourself' && (
+            <div className="mb-6">
+              <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-2`}>
+                Train It To Sound Like You
+              </label>
+              <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-2`}>
+                Provide examples of how you speak, your personality traits, favorite phrases, communication style, interests, and any other details about yourself. The bot will learn to mimic your unique voice.
+              </p>
+              <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-3`}>
+                Characters: {yourSelfTraining.length} {yourSelfTraining.length > 4000 && <span className="text-red-500">(Very long - consider shortening)</span>}
+              </div>
+              
+              {/* Learn Button */}
+              {yourSelfTraining.trim() && (
+                <div className="mb-3">
+                  <button
+                    onClick={learnFromPersonality}
+                    disabled={isLearning}
+                    className={`w-full py-2 px-4 rounded-lg font-medium text-sm transition-colors ${
+                      isLearning
+                        ? 'opacity-50 cursor-not-allowed'
+                        : darkMode 
+                          ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                          : 'bg-purple-600 text-white hover:bg-purple-700'
+                    }`}
+                  >
+                    {isLearning ? '🧠 Learning Your Style...' : '🧠 Learn & Optimize My Personality'}
+                  </button>
+                  <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'} mt-2 text-center`}>
+                    This will analyze your style and create an optimized personality that can discuss any topic in your voice
+                  </p>
+                </div>
+              )}
+              
+              {/* Show learned status */}
+              {learnedPersonality && (
+                <div className={`mb-3 p-2 rounded-lg ${darkMode ? 'bg-green-900 border border-green-700' : 'bg-green-50 border border-green-200'}`}>
+                  <p className={`text-xs ${darkMode ? 'text-green-300' : 'text-green-700'} font-medium`}>
+                    ✅ Personality learned and optimized! The bot can now discuss any topic in your style.
+                  </p>
+                  <button
+                    onClick={() => setLearnedPersonality('')}
+                    className={`text-xs mt-1 ${darkMode ? 'text-green-400 hover:text-green-300' : 'text-green-600 hover:text-green-700'} underline`}
+                  >
+                    Reset to original
+                  </button>
+                </div>
+              )}
+              
+              <textarea
+                value={yourSelfTraining}
+                onChange={(e) => setYourSelfTraining(e.target.value)}
+                className={`w-full h-60 p-3 border rounded-lg resize-none text-sm ${
+                  darkMode 
+                    ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                    : 'bg-white border-gray-300 text-gray-900'
+                }`}
+                placeholder="I tend to use a lot of casual language like 'totally', 'for sure', and 'that's wild'. I'm really into tech and gaming, so I make references to those a lot. I'm pretty sarcastic but in a friendly way, and I love making puns even when they're terrible. I get excited about new gadgets and I'm always saying things like 'dude' and 'honestly'. When I disagree with something I usually say 'I mean...' first. I'm also obsessed with coffee and mention it constantly..."
+              />
+              {yourSelfTraining && (
+                <button
+                  onClick={() => {
+                    setYourSelfTraining('');
+                    setLearnedPersonality('');
+                  }}
+                  className={`mt-2 text-xs px-3 py-1 rounded transition-colors ${
+                    darkMode 
+                      ? 'bg-gray-600 text-gray-300 hover:bg-gray-500' 
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  Clear Training Data
+                </button>
+              )}
+            </div>
+          )}
+
+        {/* Presets */}
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Quick Presets</h3>
+            <button
+              onClick={() => setShowSaveDialog(true)}
+              className={`p-1 rounded transition-colors ${
+                darkMode 
+                  ? 'text-blue-400 hover:bg-gray-700' 
+                  : 'text-purple-600 hover:bg-gray-100'
+              }`}
+              title="Save current settings as preset"
+            >
+              <Save className="w-4 h-4" />
+            </button>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
+            {presetPersonalities.map((preset, index) => (
+              <button
+                key={index}
+                onClick={() => loadPreset(preset)}
+                className={`p-2 text-xs rounded-lg transition-colors ${
+                  darkMode 
+                    ? 'bg-blue-900 text-blue-300 hover:bg-blue-800' 
+                    : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                }`}
+              >
+                {preset.name}
+              </button>
+            ))}
+          </div>
+
+          {/* Custom Presets */}
+          {customPresets.length > 0 && (
+            <>
+              <h4 className={`text-xs font-medium ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-2`}>Your Presets</h4>
+              <div className="space-y-1">
+                {customPresets.map((preset) => (
+                  <div key={preset.id} className="flex items-center gap-1">
+                    <button
+                      onClick={() => {
+                        setActiveTab(preset.activeTab || 'sliders');
+                        setPersonalityDescription(preset.description);
+                        setPersonalitySliders(preset.sliders);
+                        setCustomPrompt(preset.customPrompt || '');
+                        setYourSelfTraining(preset.yourSelfTraining || '');
+                      }}
+                      className={`flex-1 p-2 text-xs rounded-lg text-left transition-colors ${
+                        darkMode 
+                          ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      {preset.name}
+                    </button>
+                    <button
+                      onClick={() => deleteCustomPreset(preset.id)}
+                      className={`p-1 rounded transition-colors ${
+                        darkMode 
+                          ? 'text-red-400 hover:bg-gray-700' 
+                          : 'text-red-600 hover:bg-gray-100'
+                      }`}
+                      title="Delete preset"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* Save Dialog */}
+          {showSaveDialog && (
+            <div className={`mt-3 p-3 rounded-lg border ${
+              darkMode 
+                ? 'bg-gray-700 border-gray-600' 
+                : 'bg-gray-50 border-gray-200'
+            }`}>
+              <input
+                type="text"
+                value={presetName}
+                onChange={(e) => setPresetName(e.target.value)}
+                placeholder="Preset name..."
+                className={`w-full p-2 text-xs rounded border mb-2 ${
+                  darkMode 
+                    ? 'bg-gray-600 border-gray-500 text-white placeholder-gray-400' 
+                    : 'bg-white border-gray-300 text-gray-900'
+                }`}
+                onKeyPress={(e) => e.key === 'Enter' && saveCustomPreset()}
+                autoFocus
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={saveCustomPreset}
+                  disabled={!presetName.trim()}
+                  className={`flex-1 py-1 px-2 text-xs rounded transition-colors ${
+                    darkMode 
+                      ? 'bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50' 
+                      : 'bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50'
+                  }`}
+                >
+                  Save
+                </button>
+                <button
+                  onClick={() => {
+                    setShowSaveDialog(false);
+                    setPresetName('');
+                  }}
+                  className={`flex-1 py-1 px-2 text-xs rounded transition-colors ${
+                    darkMode 
+                      ? 'bg-gray-600 text-gray-300 hover:bg-gray-500' 
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <button
+          onClick={clearChat}
+          className={`w-full py-2 px-4 rounded-lg transition-colors text-sm ${
+            darkMode 
+              ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          Clear Chat
+        </button>
+        </div>
+      </div>
+
+      {/* Chat Area */}
+      <div className="flex-1 flex flex-col md:ml-0">
+        {/* Mobile Header */}
+        <div className={`md:hidden flex items-center justify-between p-4 border-b ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
+          <button
+            onClick={() => setShowSidebar(true)}
+            className={`p-2 rounded-lg transition-colors ${darkMode ? 'bg-gray-700 text-gray-400 hover:bg-gray-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+          <div className="flex items-center gap-2">
+            <Bot className={`w-5 h-5 ${darkMode ? 'text-blue-400' : 'text-purple-600'}`} />
+            <span className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-800'}`}>Personality Bot</span>
+          </div>
+          <div className="w-9" /> {/* Spacer for centering */}
+        </div>
+
+        {/* Chat Messages */}
+        <div className="flex-1 overflow-y-auto p-4 md:p-6">
+          {messages.length === 0 && (
+            <div className={`text-center ${darkMode ? 'text-gray-400' : 'text-gray-500'} mt-20`}>
+              <Bot className={`w-12 h-12 mx-auto mb-4 ${darkMode ? 'text-blue-400' : 'text-purple-400'}`} />
+              <h3 className="text-lg font-medium mb-2">Start a conversation!</h3>
+              <p className="text-sm">Customize the personality on the left, then say hello.</p>
+            </div>
+          )}
+          
+          {messages.map((message, index) => (
+            <div key={index} className={`flex gap-2 md:gap-3 mb-4 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              {message.role === 'bot' && (
+                <div className={`w-6 h-6 md:w-8 md:h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                  darkMode ? 'bg-blue-900' : 'bg-purple-100'
+                }`}>
+                  <Bot className={`w-3 h-3 md:w-4 md:h-4 ${darkMode ? 'text-blue-400' : 'text-purple-600'}`} />
+                </div>
+              )}
+              <div className={`max-w-[280px] md:max-w-md p-2 md:p-3 rounded-lg ${
+                message.role === 'user' 
+                  ? darkMode 
+                    ? 'bg-blue-600 text-white rounded-br-sm'
+                    : 'bg-purple-600 text-white rounded-br-sm'
+                  : darkMode
+                    ? 'bg-gray-700 border border-gray-600 text-gray-100 rounded-bl-sm'
+                    : 'bg-white border border-gray-200 text-gray-900 rounded-bl-sm'
+              }`}>
+                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+              </div>
+              {message.role === 'user' && (
+                <div className={`w-6 h-6 md:w-8 md:h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                  darkMode ? 'bg-gray-700' : 'bg-gray-100'
+                }`}>
+                  <User className={`w-3 h-3 md:w-4 md:h-4 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`} />
+                </div>
+              )}
+            </div>
+          ))}
+          
+          {isLoading && (
+            <div className="flex gap-2 md:gap-3 mb-4">
+              <div className={`w-6 h-6 md:w-8 md:h-8 rounded-full flex items-center justify-center ${
+                darkMode ? 'bg-blue-900' : 'bg-purple-100'
+              }`}>
+                <Bot className={`w-3 h-3 md:w-4 md:h-4 ${darkMode ? 'text-blue-400' : 'text-purple-600'}`} />
+              </div>
+              <div className={`p-2 md:p-3 rounded-lg rounded-bl-sm ${
+                darkMode ? 'bg-gray-700 border border-gray-600' : 'bg-white border border-gray-200'
+              }`}>
+                <div className="flex gap-1">
+                  <div className={`w-2 h-2 rounded-full animate-bounce ${darkMode ? 'bg-gray-400' : 'bg-gray-400'}`}></div>
+                  <div className={`w-2 h-2 rounded-full animate-bounce ${darkMode ? 'bg-gray-400' : 'bg-gray-400'}`} style={{animationDelay: '0.1s'}}></div>
+                  <div className={`w-2 h-2 rounded-full animate-bounce ${darkMode ? 'bg-gray-400' : 'bg-gray-400'}`} style={{animationDelay: '0.2s'}}></div>
+                </div>
+              </div>
+            </div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+
+        {/* Input Area */}
+        <div className={`border-t p-3 md:p-4 ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
+          <div className="flex gap-2 md:gap-3">
+            <input
+              type="text"
+              value={inputMessage}
+              onChange={(e) => setInputMessage(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="Type your message..."
+              className={`flex-1 p-2 md:p-3 border rounded-lg focus:outline-none text-sm md:text-base ${
+                darkMode 
+                  ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500' 
+                  : 'bg-white border-gray-300 text-gray-900 focus:ring-2 focus:ring-purple-500'
+              }`}
+              disabled={isLoading}
+            />
+            <button
+              onClick={sendMessage}
+              disabled={isLoading || !inputMessage.trim()}
+              className={`px-3 py-2 md:px-4 md:py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
+                darkMode 
+                  ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                  : 'bg-purple-600 text-white hover:bg-purple-700'
+              }`}
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <style jsx>{`
+        .slider::-webkit-slider-thumb {
+          appearance: none;
+          height: 16px;
+          width: 16px;
+          border-radius: 50%;
+          background: ${darkMode ? '#3b82f6' : '#9333ea'};
+          cursor: pointer;
+        }
+        
+        .slider::-moz-range-thumb {
+          height: 16px;
+          width: 16px;
+          border-radius: 50%;
+          background: ${darkMode ? '#3b82f6' : '#9333ea'};
+          cursor: pointer;
+          border: none;
+        }
+
+        /* Custom scrollbars */
+        ::-webkit-scrollbar {
+          width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+          background: ${darkMode ? '#374151' : '#f1f5f9'};
+          border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+          background: ${darkMode ? '#6b7280' : '#cbd5e1'};
+          border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+          background: ${darkMode ? '#9ca3af' : '#94a3b8'};
+        }
+
+        /* Firefox scrollbars */
+        * {
+          scrollbar-width: thin;
+          scrollbar-color: ${darkMode ? '#6b7280 #374151' : '#cbd5e1 #f1f5f9'};
+        }
+      `}</style>
+    </div>
+  );
+};
+
+export default PersonalityChatbot;
